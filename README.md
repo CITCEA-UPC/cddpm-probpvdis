@@ -23,7 +23,6 @@ We are tidying up the codebase and preparing documentation, example notebooks, a
 ## 📂 Repository Structure (planned)
 
 ```text
-.
 ├── src/          # Core library: models, conditioning, diffusion utils
 │   └── model/    # cDDPM model
 ├── notebooks/    # Example notebooks (to be released)

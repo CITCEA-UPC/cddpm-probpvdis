@@ -22,13 +22,15 @@ We are tidying up the codebase and preparing documentation, example notebooks, a
 
 ## 📂 Repository Structure (planned)
 
+```text
 .
-├─ src/                     # Core library: models, conditioning, diffusion utils
-│  └─ model/               # cDDPM model
-├─ notebooks/               # Example notebooks (to be released)
-├─ data/                    # Download/link scripts or docs (to be released)
-├─ figures/                 # Paper plots (to be released)
-└─ README.md
+├── src/          # Core library: models, conditioning, diffusion utils
+│   └── model/    # cDDPM model
+├── notebooks/    # Example notebooks (to be released)
+├── data/         # Download/link scripts or docs (to be released)
+├── figures/      # Paper plots (to be released)
+└── README.md
+```
 
 
 ---

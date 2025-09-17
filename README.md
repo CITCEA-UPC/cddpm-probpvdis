@@ -3,7 +3,7 @@
 This repository contains the codebase associated with the paper:
 
 > *Conditional diffusion modeling for probabilistic behind-the-meter PV disaggregation*  
-> [Marc Jené-Vinuesa, Hussain Kazmi, Mònica Aragüés-Peñalba, Andreas Sumper - to be updated once accepted]  
+> Marc Jené-Vinuesa, Hussain Kazmi, Mònica Aragüés-Peñalba, Andreas Sumper - to be updated once accepted
 
 The project introduces a **conditional denoising diffusion probabilistic model (cDDPM)** for disaggregating behind-the-meter (BTM) photovoltaic (PV) generation from smart meter data. The methodology leverages generative AI to provide both accurate point estimates and well-calibrated uncertainty quantification, moving beyond traditional deterministic and parametric probabilistic approaches.
 
@@ -45,4 +45,4 @@ The repository will be released under an open-source license once the final vers
 ## 📢 Contact
 
 For questions, please reach out to the authors:  
-- [Marc Jené Vinuesa] – [marc.jene@upc.edu]  
+Marc Jené Vinuesa – marc.jene@upc.edu

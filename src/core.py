@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 # from typing import List
 
-from models.unet_v2 import UNet1D
+from model.unet_v2 import UNet1D
 from utils import get_noise_schedule, q_sample, generate_real_pv_ts, reverse_step
 
 
@@ -12,13 +12,13 @@ def train_model(pv_train: torch.Tensor, conditions_train: dict[str, torch.Tensor
                 learning_rate: float = 1e-3, noise_schedule: str = 'linear', unet_depth: int = 2,
                 device: str = 'cuda' if torch.cuda.is_available() else 'cpu') -> UNet1D:
 
-    # Check 1: time series length must be compatible with UNet depth
+    # Time series length must be compatible with UNet depth
     required_divisor = 2 ** unet_depth
     ts_length = pv_train.shape[1]
     if ts_length % required_divisor != 0:
         raise ValueError(f"ts_length={ts_length} must be divisible by 2^{unet_depth} = {required_divisor}")
 
-    # Check 2: all condition tensors must match pv_train shape
+    # All condition tensors must match pv_train shape
     for key, cond in conditions_train.items():
         if cond.shape != pv_train.shape:
             raise ValueError(f"Condition '{key}' has shape {cond.shape}, expected {pv_train.shape}")
@@ -38,8 +38,8 @@ def train_model(pv_train: torch.Tensor, conditions_train: dict[str, torch.Tensor
                                                n_samples=batch_size)
         x_0 = x_0.to(device)
 
-        t = torch.randint(0, diffusion_steps, (batch_size,))  # pick a random timestep for each sample
-        noise = torch.randn_like(x_0).to(device)  # returns a tensor same size filled with random numbers N(0, 1)
+        t = torch.randint(0, diffusion_steps, (batch_size,))  # random timestep for each sample
+        noise = torch.randn_like(x_0).to(device)  # tensor filled with random numbers N(0, 1)
         x_t = q_sample(x_0, t, noise, alphas_cumprod)
 
         # Ensure all tensors are on the same device
@@ -74,19 +74,10 @@ def sample(model, conditions_dict: dict[str, torch.Tensor], n_samples: int = 1, 
     # Repeat conditions n_samples times
     conditions = [c.unsqueeze(0).repeat(n_samples, 1).to(device) for c in conditions_dict.values()]
 
-    gi_cond = None
-    nc_cond = None
-    nc_lag1_cond = None
-    if "gi" in conditions_dict:
-        gi_cond = conditions_dict['gi'].unsqueeze(0).repeat(n_samples, 1).to(device)
-    if "nc" in conditions_dict:
-        nc_cond = conditions_dict['nc'].unsqueeze(0).repeat(n_samples, 1).to(device)
-
-
     # Initial noise
     x_t = torch.randn((n_samples, ts_length), device=device)  # [n_samples, L]
 
-    with torch.no_grad():  # Disable gradient calculation during inference
+    with torch.no_grad():  # gradient calculation disabled during inference
         for t in reversed(range(diffusion_steps)):
             t_batch = torch.full((n_samples,), t, dtype=torch.long, device=device)
 

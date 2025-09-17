@@ -21,6 +21,7 @@ We are tidying up the codebase and preparing documentation, example notebooks, a
 ---
 
 ## 📂 Repository Structure (planned)
+
 ├── src/ # Core source code (models, diffusion utilities, training scripts)
 ├── notebooks/ # Example Jupyter notebooks (to be released)
 ├── data/ # Links or scripts for dataset access (to be released)

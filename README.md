@@ -40,6 +40,22 @@ Code and documentation will be released here upon acceptance of the paper. For n
 
 ---
 
+### Installation (Python 3.11.11)
+
+> **Note:** Install the correct PyTorch wheel first (CPU or your CUDA version), then the rest.
+
+```bash
+# Option A — CPU-only
+pip install torch==2.6.0
+
+# Option B — CUDA (example: CUDA 12.4)
+pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.6.0
+
+# Then install the project requirements
+pip install -r requirements.txt
+```
+---
+
 ## 📄 License
 
 The repository will be released under an open-source license once the final version of the paper is published.

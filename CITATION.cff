@@ -1,0 +1,51 @@
+cff-version: 1.2.0
+title: "cDDPM-ProbPVDis: Conditional diffusion modeling for probabilistic behind-the-meter PV disaggregation"
+message: "If you use this software, please cite the associated paper."
+type: software
+
+version: "1.0.0"
+date-released: 2026-04-01
+
+
+authors:
+  - family-names: "Jené-Vinuesa"
+    given-names: "Marc"
+    affiliation: "CITCEA-UPC, Universitat Politècnica de Catalunya"
+  - family-names: "Kazmi"
+    given-names: "Hussain"
+    affiliation: "KU Leuven"
+  - family-names: "Aragüés-Peñalba"
+    given-names: "Mònica"
+    affiliation: "CITCEA-UPC, Universitat Politècnica de Catalunya"
+  - family-names: "Sumper"
+    given-names: "Andreas"
+    affiliation: "CITCEA-UPC, Universitat Politècnica de Catalunya"
+
+repository-code: "https://github.com/<username>/cddpm-probpvdis"
+
+keywords:
+  - energy disaggregation
+  - photovoltaics
+  - diffusion models
+  - probabilistic modeling
+  - smart meter data
+  - behind-the-meter
+  - generative AI
+
+license: "MIT"
+
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Jené-Vinuesa"
+      given-names: "Marc"
+    - family-names: "Kazmi"
+      given-names: "Hussain"
+    - family-names: "Aragüés-Peñalba"
+      given-names: "Mònica"
+    - family-names: "Sumper"
+      given-names: "Andreas"
+  title: "Conditional diffusion modeling for probabilistic behind-the-meter PV disaggregation"
+  journal: "Energy and AI"
+  year: 2026
+  doi: "10.1016/j.egyai.2026.100692"

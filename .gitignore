@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.venv/
+
+# Outputs (never commit results or large experiment files)
+results/
+grid_results/
+sensitivity_results/
+prob_disaggregation/
+benchmark_results/
+*.xlsx
+*.csv.bak
+logs/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 from statsmodels.nonparametric.kde import KDEUnivariate
 
+
 def get_noise_schedule(total_steps: int, schedule_type: str = "linear") -> dict:
     """
     Generate the cumulative product of alphas for the diffusion process.
@@ -31,7 +32,12 @@ def get_noise_schedule(total_steps: int, schedule_type: str = "linear") -> dict:
     return {"betas": betas, "alphas": alphas, "alphas_cumprod": alphas_cumprod}
 
 
-def q_sample(x_0: torch.Tensor, t: torch.Tensor, noise: torch.Tensor, alphas_cumprod: torch.Tensor) -> torch.Tensor:
+def q_sample(
+    x_0: torch.Tensor,
+    t: torch.Tensor,
+    noise: torch.Tensor,
+    alphas_cumprod: torch.Tensor,
+) -> torch.Tensor:
     """
     Add noise to a clean input x_0 at a given diffusion timestep t.
     :param x_0: Original input tensor.
@@ -56,7 +62,9 @@ def q_sample(x_0: torch.Tensor, t: torch.Tensor, noise: torch.Tensor, alphas_cum
     return sqrt_alpha_cumprod * x_0 + sqrt_one_minus * noise
 
 
-def generate_real_pv_ts(pv_tensor: torch.Tensor, *condition_tensors: torch.Tensor, n_samples: int = 64) -> tuple:
+def generate_real_pv_ts(
+    pv_tensor: torch.Tensor, *condition_tensors: torch.Tensor, n_samples: int = 64
+) -> tuple:
     """
     Randomly sample a batch of real PV time series and their corresponding condition signals.
 
@@ -85,8 +93,10 @@ def reverse_step(x_t, pred_noise, alpha_t, beta_t, alpha_cumprod_t, t) -> torch.
     :return: Denoised tensor.
     """
     z = torch.randn_like(x_t) if t > 0 else 0
-    return (1 / torch.sqrt(alpha_t)) * (x_t - (beta_t / torch.sqrt(1 - alpha_cumprod_t)) * pred_noise
-                                        ) + torch.sqrt(beta_t) * z
+    return (1 / torch.sqrt(alpha_t)) * (
+        x_t - (beta_t / torch.sqrt(1 - alpha_cumprod_t)) * pred_noise
+    ) + torch.sqrt(beta_t) * z
+
 
 def set_seed(seed=0):
     torch.manual_seed(seed)
@@ -94,16 +104,24 @@ def set_seed(seed=0):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
+
 def extract_customer(sample_str):
     return int(sample_str.split("_")[0])
+
 
 def extract_month(sample_str):
     month = int(sample_str.split("_")[1].split("/")[1])
     return month
 
 
-def split_train_test_tensors(pv_data: pd.DataFrame, cond_data: dict, seed: int, test_size: int, train_size: int,
-                              drop_customers: list = None):
+def split_train_test_tensors(
+    pv_data: pd.DataFrame,
+    cond_data: dict,
+    seed: int,
+    test_size: int,
+    train_size: int,
+    drop_customers: list = None,
+):
     """
     Split PV and condition data into train/test sets and return tensors.
     """
@@ -118,8 +136,13 @@ def split_train_test_tensors(pv_data: pd.DataFrame, cond_data: dict, seed: int, 
     test_mask = customer_ids.isin(customers_test)
     if train_size < (len(all_customers) - test_size):
         # Randomly select customers for training
-        customers_train = sorted(rng.choice(
-            [c for c in all_customers if c not in customers_test], size=train_size, replace=False))
+        customers_train = sorted(
+            rng.choice(
+                [c for c in all_customers if c not in customers_test],
+                size=train_size,
+                replace=False,
+            )
+        )
         train_mask = customer_ids.isin(customers_train)
     else:
         train_mask = ~test_mask
@@ -128,7 +151,9 @@ def split_train_test_tensors(pv_data: pd.DataFrame, cond_data: dict, seed: int, 
     pv_train = torch.tensor(pv_data[train_mask].values, dtype=torch.float32)
     train_conditions = {}
     for key in cond_data:
-        train_conditions[key] = torch.tensor(cond_data[key][train_mask].values, dtype=torch.float32)
+        train_conditions[key] = torch.tensor(
+            cond_data[key][train_mask].values, dtype=torch.float32
+        )
 
     pv_test = torch.tensor(pv_data[test_mask].values, dtype=torch.float32)
     test_index = pv_data[test_mask].index
@@ -136,14 +161,27 @@ def split_train_test_tensors(pv_data: pd.DataFrame, cond_data: dict, seed: int, 
     test_dates = test_index.str.split("_").str[1].tolist()
     test_conditions = {}
     for key in cond_data:
-        test_conditions[key] = torch.tensor(cond_data[key][test_mask].values, dtype=torch.float32)
+        test_conditions[key] = torch.tensor(
+            cond_data[key][test_mask].values, dtype=torch.float32
+        )
 
-    return {"pv_train": pv_train, "pv_test": pv_test, "conditions_train": train_conditions,
-            "conditions_test": test_conditions, "test_customers": test_customers, "test_dates": test_dates}
+    return {
+        "pv_train": pv_train,
+        "pv_test": pv_test,
+        "conditions_train": train_conditions,
+        "conditions_test": test_conditions,
+        "test_customers": test_customers,
+        "test_dates": test_dates,
+    }
 
 
-def refine_samples(samples: torch.Tensor, gi_cond: torch.Tensor = None, nc_cond: torch.Tensor = None,
-                   cap_pred: float = 1.0, max_exp: float = 1.0) -> torch.Tensor:
+def refine_samples(
+    samples: torch.Tensor,
+    gi_cond: torch.Tensor = None,
+    nc_cond: torch.Tensor = None,
+    cap_pred: float = 1.0,
+    max_exp: float = 1.0,
+) -> torch.Tensor:
     """
     Apply rules of thumb to refine generated PV samples.
     :param samples: Generated PV samples tensor of shape (batch_size, 48).
@@ -161,8 +199,10 @@ def refine_samples(samples: torch.Tensor, gi_cond: torch.Tensor = None, nc_cond:
         samples_out = samples_out * gi_mask  # (batch_size, 48)
 
     if nc_cond is not None:
-        scaled_samples = torch.maximum(samples_out*cap_pred, -nc_cond*max_exp)  # (batch_size, 48)
-        samples_out = scaled_samples/cap_pred  # Scale back to original capacity
+        scaled_samples = torch.maximum(
+            samples_out * cap_pred, -nc_cond * max_exp
+        )  # (batch_size, 48)
+        samples_out = scaled_samples / cap_pred  # Scale back to original capacity
 
     return samples_out
 
@@ -197,13 +237,19 @@ def compute_kde_peaks(samples_np: np.ndarray) -> np.ndarray:
     return np.array(peaks)
 
 
-def compute_pv_stats(customer_id: str, date: str, samples: torch.Tensor, real: np.ndarray, cap: float = 1.0) -> dict:
+def compute_pv_stats(
+    customer_id: str,
+    date: str,
+    samples: torch.Tensor,
+    real: np.ndarray,
+    cap: float = 1.0,
+) -> dict:
     """
     Compute summary statistics over generated samples.
     """
     samples_np = samples.detach().cpu().numpy() * cap
     ts_length = samples_np.shape[1]
-    minutes_step = 24*60 // ts_length
+    minutes_step = 24 * 60 // ts_length
     return {
         "customer": np.full(ts_length, customer_id),
         "date": np.full(ts_length, date),
@@ -215,21 +261,32 @@ def compute_pv_stats(customer_id: str, date: str, samples: torch.Tensor, real: n
         "kde_peak": compute_kde_peaks(samples_np),
         "std": np.std(samples_np, axis=0),
         "p0": np.percentile(samples_np, 0, axis=0),
-        "p10": np.percentile(samples_np, 10, axis=0),
-        "p20": np.percentile(samples_np, 20, axis=0),
-        "p30": np.percentile(samples_np, 30, axis=0),
-        "p40": np.percentile(samples_np, 40, axis=0),
-        "p50": np.percentile(samples_np, 50, axis=0),
-        "p60": np.percentile(samples_np, 60, axis=0),
-        "p70": np.percentile(samples_np, 70, axis=0),
-        "p80": np.percentile(samples_np, 80, axis=0),
-        "p90": np.percentile(samples_np, 90, axis=0),
-        "p100": np.percentile(samples_np, 100, axis=0),
-        "p25": np.percentile(samples_np, 25, axis=0),
-        "p75": np.percentile(samples_np, 75, axis=0),
+        "p1": np.percentile(samples_np, 1, axis=0),
         "p5": np.percentile(samples_np, 5, axis=0),
+        "p10": np.percentile(samples_np, 10, axis=0),
+        "p15": np.percentile(samples_np, 15, axis=0),
+        "p20": np.percentile(samples_np, 20, axis=0),
+        "p25": np.percentile(samples_np, 25, axis=0),
+        "p30": np.percentile(samples_np, 30, axis=0),
+        "p35": np.percentile(samples_np, 35, axis=0),
+        "p40": np.percentile(samples_np, 40, axis=0),
+        "p45": np.percentile(samples_np, 45, axis=0),
+        "p49": np.percentile(samples_np, 49, axis=0),
+        "p50": np.percentile(samples_np, 50, axis=0),
+        "p51": np.percentile(samples_np, 51, axis=0),
+        "p55": np.percentile(samples_np, 55, axis=0),
+        "p60": np.percentile(samples_np, 60, axis=0),
+        "p65": np.percentile(samples_np, 65, axis=0),
+        "p70": np.percentile(samples_np, 70, axis=0),
+        "p75": np.percentile(samples_np, 75, axis=0),
+        "p80": np.percentile(samples_np, 80, axis=0),
+        "p85": np.percentile(samples_np, 85, axis=0),
+        "p90": np.percentile(samples_np, 90, axis=0),
         "p95": np.percentile(samples_np, 95, axis=0),
+        "p99": np.percentile(samples_np, 99, axis=0),
+        "p100": np.percentile(samples_np, 100, axis=0),
     }
+
 
 def get_results_customer(stats, seed, time_id, save=True):
     """
@@ -241,7 +298,16 @@ def get_results_customer(stats, seed, time_id, save=True):
     df_results = pd.DataFrame(stats)
 
     if save:
-        df_results.to_csv("prob_disaggregation/pvdiff_seed" + str(seed) + "_c" + customer + "_" + str(time_id) + ".csv", index=False)
+        df_results.to_csv(
+            "prob_disaggregation/pvdiff_seed"
+            + str(seed)
+            + "_c"
+            + customer
+            + "_"
+            + str(time_id)
+            + ".csv",
+            index=False,
+        )
     return df_results
 
 
@@ -266,7 +332,7 @@ def get_mape(df_results: pd.DataFrame, estimation_column: str) -> float:
     real = df_results["real"].values
     estimation = df_results[estimation_column].values
     # Add additional filter to avoid division by zero or very small values
-    mask = (real > 0.01)
+    mask = real > 0.01
     mape = np.mean(np.abs((real[mask] - estimation[mask]) / real[mask])) * 100
     return mape
 
@@ -278,8 +344,15 @@ def get_smape(df_results: pd.DataFrame, estimation_column: str) -> float:
     real = df_results["real"].values
     estimation = df_results[estimation_column].values
     # Add additional filter to avoid division by zero or very small values
-    mask = (real > 0.01)
-    smape = np.mean(2 * np.abs(real[mask] - estimation[mask]) / (np.abs(real[mask]) + np.abs(estimation[mask]))) * 100
+    mask = real > 0.01
+    smape = (
+        np.mean(
+            2
+            * np.abs(real[mask] - estimation[mask])
+            / (np.abs(real[mask]) + np.abs(estimation[mask]))
+        )
+        * 100
+    )
     return smape
 
 
@@ -288,7 +361,7 @@ def get_picp(df_results: pd.DataFrame, ci: int) -> float:
     Compute Prediction Interval Coverage Probability (PICP) for PV disaggregation.
     """
     real = df_results["real"].values
-    lb = int(50 - ci/2)
+    lb = int(50 - ci / 2)
     ub = 100 - lb
     lower_bound = df_results[f"p{lb}"].values
     upper_bound = df_results[f"p{ub}"].values
@@ -303,13 +376,13 @@ def get_pinaw(df_results: pd.DataFrame, capacity, ci: int) -> float:
     """
     Compute Prediction Interval Normalized Width (PINW) for PV disaggregation.
     """
-    lb = int(50 - ci/2)
+    lb = int(50 - ci / 2)
     ub = 100 - lb
     lower_bound = df_results[f"p{lb}"].values
     upper_bound = df_results[f"p{ub}"].values
 
     # Calculate the width of the prediction interval
-    pinaw = np.mean(upper_bound - lower_bound)/capacity
+    pinaw = np.mean(upper_bound - lower_bound) / capacity
     return pinaw
 
 
@@ -337,7 +410,7 @@ def crps_from_quantiles(df_results):
             indicator = np.asarray(z >= y).astype(float)
             diff = F - indicator
             dz = np.gradient(z)
-            crps[i] = np.sum((diff ** 2) * dz)
+            crps[i] = np.sum((diff**2) * dz)
 
     crps_mean = np.mean(crps)
     return crps_mean
@@ -347,7 +420,7 @@ def calculate_pinball_loss(df_results, quantiles=np.arange(0.1, 1.0, 0.1)):
     """
     Calculate the average pinball loss for the given quantiles.
     """
-    y_true = df_results['real'].values
+    y_true = df_results["real"].values
 
     pl_total = 0
     valid_quantiles = 0
@@ -369,8 +442,9 @@ def calculate_pinball_loss(df_results, quantiles=np.arange(0.1, 1.0, 0.1)):
     return avg_pinball_loss
 
 
-
-def get_metrics(df_results: pd.DataFrame, capacity: float, deterministic_values: list) -> dict:
+def get_metrics(
+    df_results: pd.DataFrame, capacity: float, deterministic_values: list
+) -> dict:
     """
     Compute basic evaluation metrics between predicted stats and real PV.
     """
@@ -396,20 +470,28 @@ def get_metrics(df_results: pd.DataFrame, capacity: float, deterministic_values:
         smape = get_smape(df_det_filtered, estimation_column)
 
         # Store results in dictionary
-        dict_output["rmse_"+estimation_column] = rmse
-        dict_output["mae_"+estimation_column] = mae
-        dict_output["mase_"+estimation_column] = mase
-        dict_output["r2_"+estimation_column] = r2
-        dict_output["mape_"+estimation_column] = mape
-        dict_output["smape_"+estimation_column] = smape
+        dict_output["rmse_" + estimation_column] = rmse
+        dict_output["mae_" + estimation_column] = mae
+        dict_output["mase_" + estimation_column] = mase
+        dict_output["r2_" + estimation_column] = r2
+        dict_output["mape_" + estimation_column] = mape
+        dict_output["smape_" + estimation_column] = smape
 
     # Probabilistic metrics
     mask_picp = (df_results["hour"] >= 5) & (df_results["hour"] < 21)
     df_prob_filtered = df_results[mask_picp]
     # Prediction Interval Coverage Probability (PICP)
+    picp_2 = get_picp(df_prob_filtered, 2)
+    picp_10 = get_picp(df_prob_filtered, 10)
+    picp_20 = get_picp(df_prob_filtered, 20)
+    picp_30 = get_picp(df_prob_filtered, 30)
+    picp_40 = get_picp(df_prob_filtered, 40)
     picp_50 = get_picp(df_prob_filtered, 50)
+    picp_60 = get_picp(df_prob_filtered, 60)
+    picp_70 = get_picp(df_prob_filtered, 70)
     picp_80 = get_picp(df_prob_filtered, 80)
     picp_90 = get_picp(df_prob_filtered, 90)
+    picp_98 = get_picp(df_prob_filtered, 98)
     # Prediction Interval Width (PIW)
     pinaw_50 = get_pinaw(df_prob_filtered, capacity, 50)
     pinaw_80 = get_pinaw(df_prob_filtered, capacity, 80)
@@ -421,10 +503,33 @@ def get_metrics(df_results: pd.DataFrame, capacity: float, deterministic_values:
     pinball_all = calculate_pinball_loss(df_results)
     pinball_sun = calculate_pinball_loss(df_prob_filtered)
 
+    mask_picp_peak = (df_results["hour"] >= 7) & (df_results["hour"] <= 17)
+    df_prob_filtered_peak = df_results[mask_picp_peak]
+    picp_2_peak = get_picp(df_prob_filtered_peak, 2)
+    picp_10_peak = get_picp(df_prob_filtered_peak, 10)
+    picp_20_peak = get_picp(df_prob_filtered_peak, 20)
+    picp_30_peak = get_picp(df_prob_filtered_peak, 30)
+    picp_40_peak = get_picp(df_prob_filtered_peak, 40)
+    picp_50_peak = get_picp(df_prob_filtered_peak, 50)
+    picp_60_peak = get_picp(df_prob_filtered_peak, 60)
+    picp_70_peak = get_picp(df_prob_filtered_peak, 70)
+    picp_80_peak = get_picp(df_prob_filtered_peak, 80)
+    picp_90_peak = get_picp(df_prob_filtered_peak, 90)
+    picp_98_peak = get_picp(df_prob_filtered_peak, 98)
+
     # Store probabilistic metrics
+    dict_output["picp_2"] = picp_2
+    dict_output["picp_10"] = picp_10
+    dict_output["picp_20"] = picp_20
+    dict_output["picp_30"] = picp_30
+    dict_output["picp_40"] = picp_40
     dict_output["picp_50"] = picp_50
+    dict_output["picp_60"] = picp_60
+    dict_output["picp_70"] = picp_70
     dict_output["picp_80"] = picp_80
     dict_output["picp_90"] = picp_90
+    dict_output["picp_98"] = picp_98
+
     dict_output["pinaw_50"] = pinaw_50
     dict_output["pinaw_80"] = pinaw_80
     dict_output["pinaw_90"] = pinaw_90
@@ -432,12 +537,28 @@ def get_metrics(df_results: pd.DataFrame, capacity: float, deterministic_values:
     dict_output["crps_sun"] = crps_sun
     dict_output["pl_all"] = pinball_all
     dict_output["pl_sun"] = pinball_sun
+    dict_output["picp_2_peak"] = picp_2_peak
+    dict_output["picp_10_peak"] = picp_10_peak
+    dict_output["picp_20_peak"] = picp_20_peak
+    dict_output["picp_30_peak"] = picp_30_peak
+    dict_output["picp_40_peak"] = picp_40_peak
+    dict_output["picp_50_peak"] = picp_50_peak
+    dict_output["picp_60_peak"] = picp_60_peak
+    dict_output["picp_70_peak"] = picp_70_peak
+    dict_output["picp_80_peak"] = picp_80_peak
+    dict_output["picp_90_peak"] = picp_90_peak
+    dict_output["picp_98_peak"] = picp_98_peak
     dict_output["customer"] = customer
 
     return dict_output
 
 
-def metrics_sensitivity(df_results: pd.DataFrame, capacity: float, deterministic_values: str, sensitivity: str):
+def metrics_sensitivity(
+    df_results: pd.DataFrame,
+    capacity: float,
+    deterministic_values: str,
+    sensitivity: str,
+):
     """
     Compute sensitivity metrics for the given deterministic values.
     :param df_results: DataFrame with results.
@@ -448,18 +569,20 @@ def metrics_sensitivity(df_results: pd.DataFrame, capacity: float, deterministic
     """
     dict_output = {}
 
-    if sensitivity not in ['hour', 'season']:
+    if sensitivity not in ["hour", "season"]:
         raise ValueError("Sensitivity must be one of ['hour', 'season']")
 
-    if deterministic_values not in ['mean', 'median', 'kde_peak']:
-        raise ValueError("Deterministic values must be one of ['mean', 'median', 'kde_peak']")
+    if deterministic_values not in ["mean", "median", "kde_peak"]:
+        raise ValueError(
+            "Deterministic values must be one of ['mean', 'median', 'kde_peak']"
+        )
 
     filtered_df = df_results.copy()
     df_output = pd.DataFrame()
 
-    if sensitivity == 'hour':
+    if sensitivity == "hour":
         for h in range(6, 20, 2):
-            mask = (filtered_df["hour"] >= h) & (df_results["hour"] < h+2)
+            mask = (filtered_df["hour"] >= h) & (df_results["hour"] < h + 2)
             df_h = filtered_df[mask]
             real_h = df_h["real"].values
             estimation_h = df_h[deterministic_values].values
@@ -482,21 +605,37 @@ def metrics_sensitivity(df_results: pd.DataFrame, capacity: float, deterministic
             crps_sun = crps_from_quantiles(df_h)
             pinball_sun = calculate_pinball_loss(df_h)
             # Store results in dictionary
-            metrics_h = {'hour': str(h)+'-'+str(h+2), 'customer': df_h["customer"].values[0],
-                         'rmse': rmse, 'mae': mae, 'mase': mase, 'r2': r2,
-                         'mape': mape, 'smape': smape,
-                         'picp_50': picp_50, 'picp_80': picp_80, 'picp_90': picp_90,
-                         'pinaw_50': pinaw_50, 'pinaw_80': pinaw_80, 'pinaw_90': pinaw_90,
-                         'crps_sun': crps_sun, 'pl_sun': pinball_sun}
-            df_output = pd.concat([df_output, pd.DataFrame(metrics_h, index=[0])], ignore_index=True)
+            metrics_h = {
+                "hour": str(h) + "-" + str(h + 2),
+                "customer": df_h["customer"].values[0],
+                "rmse": rmse,
+                "mae": mae,
+                "mase": mase,
+                "r2": r2,
+                "mape": mape,
+                "smape": smape,
+                "picp_50": picp_50,
+                "picp_80": picp_80,
+                "picp_90": picp_90,
+                "pinaw_50": pinaw_50,
+                "pinaw_80": pinaw_80,
+                "pinaw_90": pinaw_90,
+                "crps_sun": crps_sun,
+                "pl_sun": pinball_sun,
+            }
+            df_output = pd.concat(
+                [df_output, pd.DataFrame(metrics_h, index=[0])], ignore_index=True
+            )
 
-    elif sensitivity == 'season':
+    elif sensitivity == "season":
         filtered_df["month"] = filtered_df["date"].str[3:5].astype(int)
         for month in [6, 9, 12, 3]:
             if month == 12:
                 mask = (filtered_df["month"] >= month) | (filtered_df["month"] < 3)
             else:
-                mask = (filtered_df["month"] >= month) & (filtered_df["month"] < month + 3)
+                mask = (filtered_df["month"] >= month) & (
+                    filtered_df["month"] < month + 3
+                )
             df_m = filtered_df[mask]
             real_m = df_m["real"].values
             estimation_m = df_m[deterministic_values].values
@@ -524,16 +663,29 @@ def metrics_sensitivity(df_results: pd.DataFrame, capacity: float, deterministic
             pinball_sun = calculate_pinball_loss(df_m_picp)
 
             # Store results in dictionary
-            metrics_month = {'starting_month': str(month), 'customer': df_m["customer"].values[0],
-                             'rmse': rmse, 'mae': mae, 'mase': mase, 'r2': r2,
-                             'mape': mape, 'smape': smape,
-                             'picp_50': picp_50, 'picp_80': picp_80, 'picp_90': picp_90,
-                             'pinaw_50': pinaw_50, 'pinaw_80': pinaw_80, 'pinaw_90': pinaw_90,
-                             'crps_sun': crps_sun, 'pl_sun': pinball_sun}
-            df_output = pd.concat([df_output, pd.DataFrame(metrics_month, index=[0])], ignore_index=True)
+            metrics_month = {
+                "starting_month": str(month),
+                "customer": df_m["customer"].values[0],
+                "rmse": rmse,
+                "mae": mae,
+                "mase": mase,
+                "r2": r2,
+                "mape": mape,
+                "smape": smape,
+                "picp_50": picp_50,
+                "picp_80": picp_80,
+                "picp_90": picp_90,
+                "pinaw_50": pinaw_50,
+                "pinaw_80": pinaw_80,
+                "pinaw_90": pinaw_90,
+                "crps_sun": crps_sun,
+                "pl_sun": pinball_sun,
+            }
+            df_output = pd.concat(
+                [df_output, pd.DataFrame(metrics_month, index=[0])], ignore_index=True
+            )
 
     return df_output
-
 
 
 def plot_pv_uncertainty(real: torch.Tensor, stats: dict, gi: torch.Tensor = None):
@@ -546,11 +698,21 @@ def plot_pv_uncertainty(real: torch.Tensor, stats: dict, gi: torch.Tensor = None
     plt.figure(figsize=(10, 4))
     plt.plot(x, real_np, label="Real PV", color="black")
     plt.plot(x, stats["median"], label="Median", color="blue")
-    plt.fill_between(x, stats["p25"], stats["p75"], alpha=0.3, color="blue", label="50% CI")
-    plt.fill_between(x, stats["p10"], stats["p90"], alpha=0.2, color="blue", label="80% CI")
+    plt.fill_between(
+        x, stats["p25"], stats["p75"], alpha=0.3, color="blue", label="50% CI"
+    )
+    plt.fill_between(
+        x, stats["p10"], stats["p90"], alpha=0.2, color="blue", label="80% CI"
+    )
 
     if gi is not None:
-        plt.plot(x, gi.detach().cpu().numpy(), linestyle="--", label="Irradiance", color="orange")
+        plt.plot(
+            x,
+            gi.detach().cpu().numpy(),
+            linestyle="--",
+            label="Irradiance",
+            color="orange",
+        )
 
     plt.ylim(0, 1)
     plt.legend()
